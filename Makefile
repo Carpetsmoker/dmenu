@@ -3,10 +3,9 @@
 
 include config.mk
 
-SRC = drw.c dmenu.c stest.c util.c
-OBJ = $(SRC:.c=.o)
-
-all: options dmenu stest
+all: options config.h
+	$(CC) -o dmenu dmenu.c drw.c util.c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
+	$(CC) -o stest stest.c $(CFLAGS) $(LDFLAGS)
 
 options:
 	@echo dmenu build options:
@@ -14,31 +13,11 @@ options:
 	@echo "LDFLAGS  = $(LDFLAGS)"
 	@echo "CC       = $(CC)"
 
-.c.o:
-	$(CC) -c $(CFLAGS) $<
-
 config.h:
-	cp config.def.h $@
-
-$(OBJ): arg.h config.h config.mk drw.h
-
-dmenu: dmenu.o drw.o util.o
-	$(CC) -o $@ dmenu.o drw.o util.o $(LDFLAGS)
-
-stest: stest.o
-	$(CC) -o $@ stest.o $(LDFLAGS)
+	cp config.def.h config.h
 
 clean:
-	rm -f dmenu stest $(OBJ) dmenu-$(VERSION).tar.gz
-
-dist: clean
-	mkdir -p dmenu-$(VERSION)
-	cp LICENSE Makefile README arg.h config.def.h config.mk dmenu.1\
-		drw.h util.h dmenu_path dmenu_run stest.1 $(SRC)\
-		dmenu-$(VERSION)
-	tar -cf dmenu-$(VERSION).tar dmenu-$(VERSION)
-	gzip dmenu-$(VERSION).tar
-	rm -rf dmenu-$(VERSION)
+	rm -f dmenu stest
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
