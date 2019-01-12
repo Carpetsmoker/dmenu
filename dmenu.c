@@ -46,7 +46,7 @@ static struct item *items = NULL;
 static struct item *matches, *matchend;
 static struct item *prev, *curr, *next, *sel;
 static int mon = -1, screen;
-static int use_text_input = 0;
+static int use_text_input;
 
 static Atom clip, utf8;
 static Display *dpy;
@@ -222,7 +222,7 @@ match(void)
 	char buf[sizeof text], *s;
 	int i, tokc = 0;
 	size_t len, textsize;
-	struct item *item, *lprefix, *prefixend;
+	struct item *item, *lprefix, *lsubstr, *prefixend, *substrend;
 
 	strcpy(buf, text);
 	/* separate input text into tokens to be matched individually */
@@ -231,8 +231,14 @@ match(void)
 			die("cannot realloc %u bytes:", tokn * sizeof *tokv);
 	len = tokc ? strlen(tokv[0]) : 0;
 
-	matches = lprefix = matchend = prefixend = NULL;
-	textsize = strlen(text);
+	if (use_prefix) {
+		matches = lprefix = matchend = prefixend = NULL;
+		textsize = strlen(text);
+	}
+	else {
+		matches = lprefix = lsubstr = matchend = prefixend = substrend = NULL;
+		textsize = strlen(text) + 1;
+	}
 	for (item = items; item && item->text; item++) {
 		for (i = 0; i < tokc; i++)
 			if (!fstrstr(item->text, tokv[i]))
@@ -244,6 +250,8 @@ match(void)
 			appenditem(item, &matches, &matchend);
 		else if (!fstrncmp(tokv[0], item->text, len))
 			appenditem(item, &lprefix, &prefixend);
+		else if (!use_prefix)
+			appenditem(item, &lsubstr, &substrend);
 	}
 	if (lprefix) {
 		if (matches) {
@@ -253,6 +261,15 @@ match(void)
 			matches = lprefix;
 		matchend = prefixend;
 	}
+	if (!use_prefix && lsubstr) {
+		if (matches) {
+			matchend->right = lsubstr;
+			lsubstr->left = matchend;
+		} else
+			matches = lsubstr;
+		matchend = substrend;
+	}
+
 	curr = sel = matches;
 	calcoffsets();
 }
@@ -709,6 +726,8 @@ main(int argc, char *argv[])
 			fstrstr = cistrstr;
 		} else if (!strcmp(argv[i], "-t")) /* favors text input over selection */
 			use_text_input = 1;
+		else if (!strcmp(argv[i], "-x")) /* invert use_prefix */
+			use_prefix = !use_prefix;
 		else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */

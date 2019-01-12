@@ -23,3 +23,5 @@ static unsigned int lines      = 8;
  * for example: " /?\"&[]"
  */
 static const char worddelimiters[] = " ";
+
+static int use_prefix = 1;
